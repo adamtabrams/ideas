@@ -1,0 +1,97 @@
+#!/bin/sh
+
+data="${XDG_DATA_HOME:-$HOME/.local/share}/ideas"
+data_repo="$data/repo"
+
+usage() {
+    echo "usage: ideas [COMMAND] [ARGS]"
+    echo
+    echo "ideas"
+    echo "    edit/view one of your existing ideas"
+    echo
+    echo "ideas NAME"
+    echo "    edit/view an existing idea called NAME"
+    echo
+    echo "ideas add"
+    echo "    create a new idea"
+    echo
+    echo "ideas new"
+    echo "    alias for add"
+    echo
+    echo "ideas init DIRECTORY"
+    echo "    set your ideas repo"
+}
+
+select_idea() {
+    repo=$1
+    find "$repo" -depth 1 -name "*.md" -print0 |
+        xargs -n 1 -0 basename -s .md |
+        fzf +m --reverse
+}
+
+add_idea() {
+    repo=$(get_repo) || return 1
+    printf "idea: "
+    read -r idea
+    echo
+
+    prev_dir=$(pwd)
+    cd "$repo" || return 2
+    git pull
+
+    idea_file="$repo/$idea.md"
+    [ -e "$idea_file" ] && echo "$idea_file already exists" >&2 && return 1
+
+    printf "\n[%s](%s.md)\n" "$idea" "$idea" >> "$repo/README.md"
+    printf "## %s\n\n\n" "$idea" > "$idea_file"
+    ${EDITOR:-vi} "$idea_file"
+    git add README.md "$idea_file" && git commit -m "added $idea" && git push
+
+    cd "$prev_dir" || return 2
+}
+
+get_repo() {
+    [ ! -e "$data_repo" ] &&
+        echo "you need to set a repo with ideas init REPO" >&2 && return 1
+    cat "$data_repo"
+}
+
+set_repo() {
+    repo=$1
+
+    [ ! "$repo" ] && echo "you must specify a repo" >&2 && return 1
+    [ ! -d "$repo" ] && echo "$repo doesn't exist" >&2 && return 1
+    [ ! -e "$repo/.git" ] && echo "$repo isn't a git repo" >&2 && return 1
+    [ "$(echo "$repo" | cut -c 1)" != / ] &&
+        echo "you must give an absolute path" >&2 && return 1
+    [ ! -d "$data" ] && mkdir -p "$data"
+
+    echo "$repo" > "$data_repo"
+}
+
+[ "$1" = "add"    ] && { add_idea;      exit; }
+[ "$1" = "new"    ] && { add_idea;      exit; }
+[ "$1" = "init"   ] && { set_repo "$2"; exit; }
+[ "$1" = "-h"     ] && { usage;         exit; }
+[ "$1" = "--help" ] && { usage;         exit; }
+
+repo=$(get_repo) || exit 1
+
+prev_dir=$(pwd)
+cd "$repo" || exit 2
+git pull
+
+idea=$1
+[ ! "$idea" ] && idea=$(select_idea "$repo")
+[ ! "$idea" ] && exit
+
+idea_file="$repo/$idea.md"
+[ ! -e "$idea_file" ] && echo "$idea_file doesn't exist" >&2 && exit 1
+
+prev_mod=$(stat -qf "%Sc" "$idea_file")
+${EDITOR:-vi} "$idea_file"
+
+[ "$prev_mod" != "$(stat -qf "%Sc" "$idea_file")" ] &&
+    git add README.md "$idea_file" && git commit -m "modified $idea" && git push
+
+cd "$prev_dir" || exit 2
