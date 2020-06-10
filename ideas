@@ -42,7 +42,7 @@ add_idea() {
     idea_file="$repo/$idea.md"
     [ -e "$idea_file" ] && echo "$idea_file already exists" >&2 && return 1
 
-    printf "\n[%s](%s.md)\n" "$idea" "$idea" >> "$repo/README.md"
+    printf "\n- [%s](%s.md)\n" "$idea" "$idea" >> "$repo/README.md"
     printf "## %s\n\n\n" "$idea" > "$idea_file"
     ${EDITOR:-vi} "$idea_file"
     git add README.md "$idea_file" && git commit -m "added $idea" && git push
