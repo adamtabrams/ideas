@@ -18,6 +18,9 @@ usage() {
     echo "ideas new"
     echo "    alias for add"
     echo
+    echo "ideas rm"
+    echo "    delete an existing idea"
+    echo
     echo "ideas init DIRECTORY"
     echo "    set your ideas repo"
 }
@@ -29,11 +32,34 @@ select_idea() {
         fzf +m --reverse
 }
 
+rm_idea() {
+    repo=$(get_repo) || return 1
+
+    prev_dir=$(pwd)
+    cd "$repo" || return 2
+    git pull
+
+    idea=$(select_idea "$repo")
+    [ ! "$idea" ] && return
+    idea_file="$repo/$idea.md"
+
+    printf "delete %s? (y/n): " "$idea"
+    read -r confirm
+    [ "$confirm" = y ] &&
+        rm "$idea_file" &&
+        sed -n -i "" -e "/^- \[$idea\]($idea.md)$/!p" README.md &&
+        echo "deleted" >&2 &&
+        git add README.md "$idea_file" &&
+        git commit -m "removed $idea" &&
+        git push
+
+    cd "$prev_dir" || return 2
+}
+
 add_idea() {
     repo=$(get_repo) || return 1
-    printf "idea: "
+    printf "idea name: "
     read -r idea
-    echo
 
     prev_dir=$(pwd)
     cd "$repo" || return 2
@@ -42,8 +68,8 @@ add_idea() {
     idea_file="$repo/$idea.md"
     [ -e "$idea_file" ] && echo "$idea_file already exists" >&2 && return 1
 
-    printf "\n- [%s](%s.md)\n" "$idea" "$idea" >> "$repo/README.md"
-    printf "## %s\n\n\n" "$idea" > "$idea_file"
+    echo "- [$idea]($idea.md)" >> "$repo/README.md"
+    printf "## %s\n\n" "$idea" > "$idea_file"
     ${EDITOR:-vi} "$idea_file"
     git add README.md "$idea_file" && git commit -m "added $idea" && git push
 
@@ -71,6 +97,7 @@ set_repo() {
 
 [ "$1" = "add"    ] && { add_idea;      exit; }
 [ "$1" = "new"    ] && { add_idea;      exit; }
+[ "$1" = "rm"     ] && { rm_idea;       exit; }
 [ "$1" = "init"   ] && { set_repo "$2"; exit; }
 [ "$1" = "-h"     ] && { usage;         exit; }
 [ "$1" = "--help" ] && { usage;         exit; }
