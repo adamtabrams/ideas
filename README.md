@@ -32,4 +32,4 @@ View or edit existing ideas with `ideas` or `ideas NAME`
 
 Remove unneeded ideas with `ideas rm`
 
-Ideas automatically handles keeping your private repo synced.
+Ideas automatically handles keeping your private repo synced

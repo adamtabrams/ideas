@@ -37,7 +37,7 @@ rm_idea() {
 
     prev_dir=$(pwd)
     cd "$repo" || return 2
-    git pull
+    git pull -q
 
     idea=$(select_idea "$repo")
     [ ! "$idea" ] && return
@@ -46,12 +46,13 @@ rm_idea() {
     printf "delete %s? (y/n): " "$idea"
     read -r confirm
     [ "$confirm" = y ] &&
+        echo "deleting $idea" >&2 &&
         rm "$idea_file" &&
         sed -n -i "" -e "/^- \[$idea\]($idea.md)$/!p" README.md &&
-        echo "deleted" >&2 &&
         git add README.md "$idea_file" &&
-        git commit -m "removed $idea" &&
-        git push
+        git commit -q -m "removed $idea" &&
+        git push -q &&
+        echo "done" >&2
 
     cd "$prev_dir" || return 2
 }
@@ -63,7 +64,7 @@ add_idea() {
 
     prev_dir=$(pwd)
     cd "$repo" || return 2
-    git pull
+    git pull -q
 
     idea_file="$repo/$idea.md"
     [ -e "$idea_file" ] && echo "$idea_file already exists" >&2 && return 1
@@ -71,7 +72,7 @@ add_idea() {
     echo "- [$idea]($idea.md)" >> "$repo/README.md"
     printf "## %s\n\n" "$idea" > "$idea_file"
     ${EDITOR:-vi} "$idea_file"
-    git add README.md "$idea_file" && git commit -m "added $idea" && git push
+    git add README.md "$idea_file" && git commit -q -m "added $idea" && git push -q &
 
     cd "$prev_dir" || return 2
 }
@@ -106,10 +107,10 @@ repo=$(get_repo) || exit 1
 
 prev_dir=$(pwd)
 cd "$repo" || exit 2
-git pull
 
 idea=$1
-[ ! "$idea" ] && idea=$(select_idea "$repo")
+[ "$idea" ] && git pull -q
+[ ! "$idea" ] && { git pull -q & } && idea=$(select_idea "$repo")
 [ ! "$idea" ] && exit
 
 idea_file="$repo/$idea.md"
@@ -119,6 +120,6 @@ prev_mod=$(stat -qf "%Sc" "$idea_file")
 ${EDITOR:-vi} "$idea_file"
 
 [ "$prev_mod" != "$(stat -qf "%Sc" "$idea_file")" ] &&
-    git add README.md "$idea_file" && git commit -m "modified $idea" && git push
+    git add "$idea_file" && git commit -q -m "modified $idea" && git push -q &
 
 cd "$prev_dir" || exit 2
