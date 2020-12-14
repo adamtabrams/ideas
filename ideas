@@ -109,8 +109,10 @@ prev_dir=$(pwd)
 cd "$repo" || exit 2
 
 idea=$1
-[ "$idea" ] && git pull -q
-[ ! "$idea" ] && { git pull -q & } && idea=$(select_idea "$repo")
+# [ "$idea" ] && git pull -q
+# [ ! "$idea" ] && { git pull -q & } && idea=$(select_idea "$repo")
+git pull -q
+[ ! "$idea" ] && idea=$(select_idea "$repo")
 [ ! "$idea" ] && exit
 
 idea_file="$repo/$idea.md"
