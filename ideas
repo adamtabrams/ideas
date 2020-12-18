@@ -1,7 +1,8 @@
 #!/bin/sh
 
-data="${XDG_DATA_HOME:-$HOME/.local/share}/ideas"
-data_repo="$data/repo"
+data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/ideas"
+repo_file="$data_dir/repo"
+auth_file="$data_dir/auth"
 
 usage() {
     echo "usage: ideas [COMMAND] [ARGS]"
@@ -21,6 +22,10 @@ usage() {
     echo "ideas rm"
     echo "    delete an existing idea"
     echo
+    echo "ideas auth"
+    echo "    prompts you for a person access token"
+    echo "    need to access your ideas repo"
+    echo ""
     echo "ideas init DIRECTORY"
     echo "    set your ideas repo"
 }
@@ -77,10 +82,20 @@ add_idea() {
     cd "$prev_dir" || return 2
 }
 
+set_auth() {
+    echo "enter a personal access token"
+    printf "token: "
+    read -r token
+
+    [ ! "$token" ] && { echo "invalid token" >&2; return 1; }
+    [ ! -d "$data_dir" ] && mkdir -p "$data_dir"
+    echo "$token" | base64 > "$auth_file" && echo "done"
+}
+
 get_repo() {
-    [ ! -e "$data_repo" ] &&
+    [ ! -e "$repo_file" ] &&
         echo "you need to set a repo with ideas init REPO" >&2 && return 1
-    cat "$data_repo"
+    cat "$repo_file"
 }
 
 set_repo() {
@@ -91,9 +106,9 @@ set_repo() {
     [ ! -e "$repo/.git" ] && echo "$repo isn't a git repo" >&2 && return 1
     [ "$(echo "$repo" | cut -c 1)" != / ] &&
         echo "you must give an absolute path" >&2 && return 1
-    [ ! -d "$data" ] && mkdir -p "$data"
+    [ ! -d "$data_dir" ] && mkdir -p "$data_dir"
 
-    echo "$repo" > "$data_repo"
+    echo "$repo" > "$repo_file"
 }
 
 [ "$1" = "add"    ] && { add_idea;      exit; }
