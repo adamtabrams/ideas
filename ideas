@@ -114,6 +114,11 @@ idea=$1
 [ ! "$idea" ] && { git pull -q & } && idea=$(select_idea "$repo")
 [ ! "$idea" ] && exit
 
+# idea=$1
+# git pull -q
+# [ ! "$idea" ] && idea=$(select_idea "$repo")
+# [ ! "$idea" ] && exit
+
 idea_file="$repo/$idea.md"
 [ ! -e "$idea_file" ] && echo "$idea_file doesn't exist" >&2 && exit 1
 
