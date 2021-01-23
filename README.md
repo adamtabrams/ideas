@@ -11,6 +11,7 @@ That way your notes will stay backed up and access.
 
 * Install fzf if you don't already have it
     * For MacOS: `brew install fzf`
+    * If you prefer to use skim, put `export SELECTOR="sk"` in your shell's config file.
 
 * Clone this repo and your private repo.
     * `git clone https://github.com/you/private-repo.git`

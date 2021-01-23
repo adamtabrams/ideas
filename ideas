@@ -2,6 +2,7 @@
 
 data="${XDG_DATA_HOME:-$HOME/.local/share}/ideas"
 data_repo="$data/repo"
+selector=${SELECTOR:-fzf --reverse}
 
 usage() {
     echo "usage: ideas [COMMAND] [ARGS]"
@@ -29,7 +30,7 @@ select_idea() {
     repo=$1
     find "$repo" -depth 1 -name "*.md" -print0 |
         xargs -n 1 -0 basename -s .md |
-        fzf +m --reverse
+        $selector --no-multi
 }
 
 rm_idea() {
